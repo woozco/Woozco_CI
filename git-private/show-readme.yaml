@@ -1,0 +1,13 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: show-readme # task for show readme
+spec:
+  workspaces: # using volume, where readme is saced
+  - name: source
+  steps:
+  - name: read
+    image: alpine:latest # we use alphin image, it will use cat for show readme file in workspace volume
+    script: |
+      #!/usr/bin/env sh
+      cat $(workspaces.source.path)/README.md

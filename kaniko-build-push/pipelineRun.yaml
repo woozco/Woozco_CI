@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: clone-read-run-
+spec:
+  serviceAccountName: git-private-sa # 직접 만든 serviceAccount
+  pipelineRef:
+    name: clone-read
+  podTemplate:
+    securityContext:
+      fsGroup: 65532
+  workspaces:
+  - name: shared-data
+    persistentVolumeClaim:
+      claimName: efs-claim 
+  - name: git-credentials
+    secret:
+      secretName: git-credentials
+  params:
+  - name: repo-url
+    value: https://github.com/woozco/Woozco_BE.git # 접근하고자 하는 private repo
+  - name: image-reference
+    value: dlckswn334/private-tekton-test # dockerhub 레포지토리

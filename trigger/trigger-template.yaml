@@ -1,0 +1,37 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: test-tt
+  namespace: default
+spec:
+  params:
+    - name: giturl # git repo url
+    - name: imagetag # image tag in commit message
+  resourcetemplates: # automate create pipelinerun
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        namespace: defualt
+        generateName: test-cicd-run-
+      spec:
+        serviceAccountName: build-bot # sa for git & docker credientials -> pipeline will use for clone private repo
+        pipelineRef: # select pipeline
+          name: hong-cicd
+        podTemplate: # setting taskpod
+          securityContext:  # pod security
+            fsGroup: 65532 # set volume owner gid = 65532
+        workspaces: # volume for clone code
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: efs-claim 
+
+        params: # git address
+        - name: repo-url
+          value: $(tt.params.giturl)
+        - name: image-reference
+          value: lijahong/tektontest:$(tt.params.imagetag)
+        - name: kubectl-args
+          value:
+           - "apply"
+           - "-f"
+           - "test.yaml"

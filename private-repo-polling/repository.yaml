@@ -1,0 +1,24 @@
+apiVersion: polling.tekton.dev/v1alpha1
+kind: Repository
+metadata:
+  name: example-repository
+spec:
+  url: https://github.com/woozco/Woozco_BE.git
+  ref: main
+  frequency: 2m
+  type: github # can also be gitlab
+  pipelineRef:
+    name: github-poll-pipeline
+    params:
+    - name: sha
+      expression: commit.sha
+    - name: repoURL
+      expression: repoURL
+  auth:
+    secretRef:
+      name: git-secret
+    key: token
+  # auth:
+  #   secretRef:
+  #     name:  github-user-pass
+  #   key: password

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: git-private-sa
+  namespace: default
+secrets:
+  - name: git-secret
+  - name: docker-credential # 전 파일에서 이걸 추가
