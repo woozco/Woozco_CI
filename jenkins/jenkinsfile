@@ -1,0 +1,65 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+    - "--context=/workspace"  # Jenkins workspace
+    - "--dockerfile=/workspace/Dockerfile"
+    tty: true
+            '''
+        }
+    }
+
+    environment {
+        DOCKERHUB_CREDS = credentials('docker')
+    }
+
+    stages {
+        stage('Git Clone') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [
+                        [
+                            url: 'https://github.com/jalju0804/Woozco_Be_Test',
+                            credentialsId: 'github'
+                        ]
+                    ]
+                ])
+            }
+        }
+
+        stage('Get Commit Hash') {
+            steps {
+                script {
+                    commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                }
+            }
+        }
+
+        stage('Build and Push Docker Image with Kaniko') {
+            steps {
+                container('kaniko') {
+                    script {
+                        def imageName = "chanju/woozco_BE:${commitHash}"
+                        withCredentials([usernamePassword(credentialsId: 'chanju-docker', usernameVariable: 'DOCKERHUB_USR', passwordVariable: 'DOCKERHUB_PSW')]) {
+                            sh """
+                                /kaniko/executor --context=${PWD} --dockerfile=${PWD}/Dockerfile --destination=${imageName} --username=${DOCKERHUB_USR} --password=${DOCKERHUB_PSW}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
