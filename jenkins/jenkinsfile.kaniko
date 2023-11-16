@@ -1,0 +1,57 @@
+pipeline {
+  agent {
+    kubernetes {
+yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ['sleep']
+    args: ['infinity']
+    volumeMounts:
+      - name: registry-credentials
+        mountPath: /kaniko/.docker
+  volumes:
+    - name: registry-credentials
+      secret:
+        secretName: regcred1
+        items: 
+        - key: .dockerconfigjson
+          path: config.json
+'''
+    }
+  }
+
+ stages {
+        stage('Git Clone') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [
+                        [
+                            url: 'https://github.com/jalju0804/Woozco_Be_Test',
+                            credentialsId: 'github'
+                        ]
+                    ]
+                ])
+            }
+        }
+ 
+    stage('Build and Tag Docker Image') {
+        steps {
+            container('kaniko') {
+              sh "executor --dockerfile=Dockerfile \
+              --context=dir://${env.WORKSPACE} \
+              --destination=dlckswn334/kaniko:${env.BUILD_NUMBER} \
+              --destination=dlckswn334/kaniko:latest"
+            }
+        }
+    }
+  }
+}
